@@ -1,10 +1,11 @@
 """
-职责：1.定义学生数据结构  2.实现增删改查核心功能
-所有数据存储在内存字典中，程序退出后丢失
+职责：1.定义学生数据结构  2.实现增删改查核心功能 3.整合数据持久化
+所有数据操作后自动保存到文件，程序启动时从文件加载
 """
 
 # 导入工具函数
 from utils import is_valid_id, is_valid_score, calculate_total_score, calculate_average_score
+from persistence import save_data_to_file, load_data_from_file
 
 # 定义核心数据结构
 # 全局内存容器：key=学号（6位字符串），value=学生信息字典
@@ -17,10 +18,23 @@ from utils import is_valid_id, is_valid_score, calculate_total_score, calculate_
 #         "average": 91.5  # 平均分（自动计算）
 #     }
 # }
+# 启动时从文件加载数据
 students = {}
+
+# 初始化：程序启动时加载数据
+def init_data():
+    """初始化数据：从文件加载学生数据"""
+    success, data = load_data_from_file()
+    if success:
+        global students
+        students = data
+        print(f"成功加载{len(students)}条学生数据")
+    else:
+        print(f"加载失败：{data}")
 
 # 实现核心功能（增删改查）
 # 添加学生信息
+# 新增自动保存（3.18）
 def add_student(student_id, name, scores):
     """
     添加学生（接收ui层传入的用户输入数据）
@@ -36,6 +50,10 @@ def add_student(student_id, name, scores):
     # 验证学号是否重复
     if student_id in students:
         return False, "学号已存在"
+
+    # 新增：姓名非空校验
+    if not name.strip():
+        return False, "姓名不能为空"
 
     # 验证成绩合法性
     for subject, score in scores.items():
@@ -53,9 +71,15 @@ def add_student(student_id, name, scores):
 
     # 存入内存容器
     students[student_id] = student_info
-    return True, f"学生{name}（学号{student_id}）添加成功"
+
+    # 新增：保存到文件
+    save_success, save_msg = save_data_to_file(students)
+    if not save_success:
+        return False, f"学生{name}添加成功，但数据保存失败：{save_msg}"
+    return True, f"学生{name}(学号{student_id})添加成功"
 
 # 删除学生信息
+# 新增自动保存（3.18）
 def del_student(student_id):
     """
     删除学生（接收ui层传入的学号）
@@ -68,15 +92,21 @@ def del_student(student_id):
 
     # 删除学生信息
     del students[student_id]
-    return True, f"学号{student_id}的学生信息删除成功"
+
+    # 新增：保存到文件
+    save_success, save_msg = save_data_to_file(students)
+    if not save_success:
+        return False, f"学生{student_id}删除成功，但数据保存失败：{save_msg}"
+    return True, f"学生{student_id}删除成功"
 
 # 修改学生成绩
+# 新增自动保存（3.18）
 def modify_student_score(student_id, subject, new_score_s):
     """
     修改学生成绩（接收ui层传入的修改数据）
     :param student_id: 用户输入的学号
     :param subject: 用户输入的科目
-    :param new_score: 用户输入的新成绩
+    :param new_score_s: 用户输入的新成绩
     :return: 是否成功，提示信息
     """
     # 判断学号是否存在
@@ -97,7 +127,12 @@ def modify_student_score(student_id, subject, new_score_s):
     students[student_id]["total"] = calculate_total_score(students[student_id]["scores"])
     students[student_id]["average"] = calculate_average_score(students[student_id]["scores"])
 
-    return True,f'学号{student_id}的{subject}成绩已修改为{new_score}'
+    # 新增：保存到文件
+    save_success, save_msg = save_data_to_file(students)
+    if not save_success:
+        return False, f"学生{student_id}修改成功，但数据保存失败：{save_msg}"
+    return True, f"学生{student_id}"
+
 
 # 查询学生成绩
 def query_student(keyword):
@@ -105,7 +140,14 @@ def query_student(keyword):
     查询学生信息（支持学号精确匹配、姓名模糊匹配）
     :param keyword: 查询关键词（学号/姓名，字符串）
     :return: list- 匹配的学生信息列表（空列表表示无匹配结果）
-                列表中每个元素为字典，结构同students的value
+                列表中每个元素为字典，结构：
+                {
+                    'student_id': 学号,
+                    'name': 姓名,
+                    'scores': 成绩字典,
+                    'total': 总分,
+                    'average': 平均分
+                }
     """
     # 初始化查询结果列表
     query_results = []

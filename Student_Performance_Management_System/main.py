@@ -4,10 +4,15 @@
 """
 
 from ui import show_main_menu,handle_add, handle_query, handle_modify, handle_delete, handle_show_all
+# 新增：导入数据初始化函数
+from data_manager import init_data
 
 # 主函数：系统启动入口
 def main():
-    print("欢迎使用学生成绩管理系统！（内存版）")
+    print("欢迎使用学生成绩管理系统！（内存版）+（文件持久化）")
+
+    # 新增：程序启动时加载文件中的数据
+    init_data()
 
     # 菜单循环
     while True:
@@ -31,12 +36,12 @@ def main():
                 print("感谢使用学生成绩管理系统！")
                 break
             else:
-                print("无效的选择，请重新输入！")
+                print("无效的选择，请重新输入（仅支持0-5）！")
         except KeyboardInterrupt:
-            print("程序被强制中断，即将退出...")
+            print("\n程序被强制中断，即将退出...")
             break
         except Exception as e:
-            print("程序发生错误：", e)
+            print(f"程序发生错误：{str(e)}, 请重试！")
 
 # 启动系统
 if __name__ == '__main__':
