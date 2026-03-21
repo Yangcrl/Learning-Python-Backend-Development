@@ -35,6 +35,8 @@ def calculate_total_score(scores):
     :param scores: 数字类型的成绩字典
     :return: 所给成绩字典的总分
     """
+    if not isinstance(scores, dict) or len(scores) == 0:
+        return 0.0
     return sum(scores.values())
 
 # 计算平均分
@@ -42,7 +44,7 @@ def calculate_average_score(scores):
     """
     计算平均分（保留2位小数）
     """
-    if not scores: # 避免除以0
+    if not isinstance(scores, dict) or len(scores) == 0: # 避免除以0
         return 0.0
     total = calculate_total_score(scores)
     return round(total / len(scores), 2)
