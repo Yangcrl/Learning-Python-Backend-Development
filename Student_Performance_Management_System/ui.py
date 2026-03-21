@@ -9,7 +9,7 @@ from data_manager import add_student, del_student, modify_student_score, get_all
 def show_main_menu():
     """显示主菜单（用户操作入口）"""
     print("\n" + "="*30)
-    print("    学生成绩管理系统（内存版）+（文件持久化）")
+    print("学生成绩管理系统（内存版）+（文件持久化）")
     print("="*30)
     print("    请选择要执行的操作（0-5）")
     print("    1. 添加学生成绩")
@@ -39,7 +39,7 @@ def input_student_basic_info():
         name = input('请输入学生姓名：').strip()
         if name:
             break
-        print("姓名不能为空，请重新输入")
+        print("姓名不能为空，请重新输入！")
 
     # 输入多门科目成绩（循环输入，直到输入q结束）
     scores = {}
@@ -51,13 +51,13 @@ def input_student_basic_info():
             break
         # 空科目名提示
         if not subject:
-            print("科目名称不能为空，请重新输入")
+            print("科目名称不能为空，请重新输入！")
             continue
 
         # 输入该科成绩
         # 优化：成功输入校验
         while True:
-            score = input(f"{subject}成绩").strip()
+            score = input(f"{subject}成绩：").strip()
             # 判断是否为数字
             try:
                 float(score)
@@ -79,7 +79,7 @@ def input_query_keyword():
         keyword = input("请输入学号或姓名：").strip()
         if keyword:
             break
-        print("关键词不能为空，请重新输入")
+        print("关键词不能为空，请重新输入！")
     return keyword
 
 def input_modify_info():
@@ -90,43 +90,43 @@ def input_modify_info():
         student_id = input("请输入要修改的学生学号：").strip()
         if student_id:
             break
-        print("学号不能为空，请重新输入")
+        print("学号不能为空，请重新输入！")
     while True:
         subject = input("请输入要修改的科目名称：").strip()
         if subject:
             break
-        print("科目名称不能为空，请重新输入")
+        print("科目名称不能为空，请重新输入！")
     while True:
         new_score = input("请输入新的成绩：").strip()
         try:
             float(new_score)
             break
         except ValueError:
-            print("成绩格式错误，请重新输入")
+            print("成绩格式错误，请重新输入！")
     return student_id, subject, new_score
 
 def input_delete_id():
     """接收用户输入：要删除的学生学号"""
-    print('\n---- 修改成绩 ----')
+    print('\n---- 删除学生 ----')
     # 优化判断（3.18）
     while True:
         student_id = input("请输入要删除的学生学号：").strip()
         if len(student_id) == 6 and student_id.isdigit():
             break
-        print("学号格式错误，请重新输入")
+        print("学号格式错误，请重新输入！")
     return student_id
 
 # ===结果展示===
 def print_student_list(student_list):
     """格式化展示查询结果"""
     if not student_list:
-        print("未找到匹配的学生信息")
+        print("未找到匹配的学生信息！")
         return # 函数结束
 
     print("---学生成绩信息---")
     for idx, student in enumerate(student_list):
-        print(f"学号：{student['student_id']}", end='')
-        print(f"姓名：{student['name']}", end='')
+        print(f"学号：{student['student_id']}", end='  ')
+        print(f"姓名：{student['name']}")
         print(f"成绩：")
         for sub, sc in student['scores'].items():
             print(f"-{sub}: {sc}")
