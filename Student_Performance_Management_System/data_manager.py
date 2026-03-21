@@ -1,11 +1,13 @@
 """
 职责：1.定义学生数据结构  2.实现增删改查核心功能 3.整合数据持久化
-所有数据操作后自动保存到文件，程序启动时从文件加载
+所有数据操作后自动保存到文件，程序启动时从文件加载。
+添加计时器
 """
 
 # 导入工具函数
 from utils import is_valid_id, is_valid_score, calculate_total_score, calculate_average_score
 from persistence import save_data_to_file, load_data_from_file
+from decorators import timer_decorator
 
 # 定义核心数据结构
 # 全局内存容器：key=学号（6位字符串），value=学生信息字典
@@ -22,6 +24,7 @@ from persistence import save_data_to_file, load_data_from_file
 students = {}
 
 # 初始化：程序启动时加载数据
+@timer_decorator
 def init_data():
     """初始化数据：从文件加载学生数据"""
     success, data = load_data_from_file()
@@ -35,6 +38,8 @@ def init_data():
 # 实现核心功能（增删改查）
 # 添加学生信息
 # 新增自动保存（3.18）
+# 添加计时器（3.18）
+@timer_decorator
 def add_student(student_id, name, scores):
     """
     添加学生（接收ui层传入的用户输入数据）
@@ -80,6 +85,7 @@ def add_student(student_id, name, scores):
 
 # 删除学生信息
 # 新增自动保存（3.18）
+@timer_decorator
 def del_student(student_id):
     """
     删除学生（接收ui层传入的学号）
@@ -101,6 +107,7 @@ def del_student(student_id):
 
 # 修改学生成绩
 # 新增自动保存（3.18）
+@timer_decorator
 def modify_student_score(student_id, subject, new_score_s):
     """
     修改学生成绩（接收ui层传入的修改数据）
@@ -135,6 +142,7 @@ def modify_student_score(student_id, subject, new_score_s):
 
 
 # 查询学生成绩
+@timer_decorator
 def query_student(keyword):
     """
     查询学生信息（支持学号精确匹配、姓名模糊匹配）
@@ -167,6 +175,7 @@ def query_student(keyword):
     return query_results
 
 # 获取所有学生信息
+@timer_decorator
 def get_all_students():
     """
     获取所有学生信息（按学号排序）
