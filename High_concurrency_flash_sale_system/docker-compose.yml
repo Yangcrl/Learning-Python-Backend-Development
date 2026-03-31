@@ -1,0 +1,16 @@
+# 注释掉所有 Docker 相关内容，我们直接用本地 MySQL
+services:
+  # 这里留空或注释掉，不让 Compose 管理数据库
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mysql
+    environment:
+      # 关键！改成连接本地 MySQL
+      - DATABASE_URL=mysql+pymysql://root:root123456@localhost:3306/seckill
+    volumes:
+      - .:/app
+
+# 如果你的项目不需要 Docker 打包，也可以直接删掉这个文件，只保留 Python 运行环境
