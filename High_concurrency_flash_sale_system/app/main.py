@@ -3,9 +3,13 @@ import time
 from app.core.database import Base, engine
 from app.api.auth import router as auth_router
 from app.api.product import router as product_router
+from app.core.bloom_filter_manager import load_product_ids
 
 # 自动创建所有表
 Base.metadata.create_all(bind=engine)
+
+# 初始化布隆过滤器
+load_product_ids()
 
 app = FastAPI(title="高并发秒杀系统", version="1.0")
 

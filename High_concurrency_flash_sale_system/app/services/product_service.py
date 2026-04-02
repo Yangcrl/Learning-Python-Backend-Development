@@ -5,12 +5,23 @@
 
 # 数据库会话
 from sqlalchemy.orm import Session
+
+
 # 商品数据库模型
 from app.models.product import Product
 # Pydantic 校验模型
 from app.schemas.product import ProductCreate, ProductUpdate
 # 类型注释：列表、可选值
 from typing import List, Optional
+
+from redis import Redis
+from app.core.redis_client import RedisCacheUtil
+
+"""缓存配置"""
+# 商品详情缓存key前缀，命名规范：业务:模块:id
+PRODUCT_DETAIL_CACHE_KEY = "product:detail:"
+# 商品缓存过期时间，10分钟=600秒
+PRODUCT_DETAIL_CACHE_EXPIRE = 600
 
 # 服务类：ProductService
 class ProductService:
@@ -100,4 +111,130 @@ class ProductService:
         # 删除
         db.delete(db_product)
         db.commit()
+        return True
+
+    # 带缓存的商品详情查询
+    @staticmethod
+    def get_product_with_cache(
+            db: Session,
+            redis_client: Redis,
+            product_id: int
+    ) -> Optional[Product]:
+        """
+        商品详情查询，旁路缓存模式实现
+        1. 先查 Redis 缓存，命中直接返回
+        2. 缓存未命中，查询 MySQL 数据库
+        3. 数据库查到数据，回写 Redis 缓存，设置过期时间
+        4. 返回数据
+        :param db: 数据库会话，用来查 MySQL
+        :param redis_client: Redis 客户端，用来读写缓存
+        :param product_id: 要查询的商品的ID
+        :return: 查到则返回商品字典，否则返回None
+        """
+        # 拼接缓存key
+        cache_key = f'{PRODUCT_DETAIL_CACHE_KEY}{product_id}'
+
+        # 先查 Redis 缓存
+        cache_data = RedisCacheUtil.get_cache(redis_client, cache_key)
+        if cache_data:
+            # 缓存命中，直接返回
+            print(f'缓存命中，商品ID={product_id}')
+            return cache_data
+
+        # 缓存未命中，查询 MySQL 数据库
+        print(f'缓存未命中，商品ID={product_id}，查询数据库...')
+        db_product = db.query(Product).filter(Product.id == product_id).first()
+
+        # 数据库无数据，直接返回 None
+        if not db_product:
+            print(f'数据库无数据，商品ID={product_id}')
+            return None
+
+        # 数据库有数据，转为字典
+        product_dict = {
+            'id': db_product.id,
+            'name': db_product.name,
+            'description': db_product.description,
+            'price': float(db_product.price),
+            'stock': db_product.stock,
+            'created_time': db_product.created_time.isoformat() if db_product.created_time else None,
+            'updated_time': db_product.updated_time.isoformat() if db_product.updated_time else None
+        }
+
+        # 回写 Redis 缓存，设置过期时间
+        RedisCacheUtil.set_cache(
+            redis_client,
+            cache_key,
+            product_dict,
+            expire=PRODUCT_DETAIL_CACHE_EXPIRE
+        )
+        print(f'缓存回写，商品ID={product_id}，已写入Redis缓存')
+
+        # 返回数据
+        return product_dict
+
+    # 带缓存清理的商品更新
+    @staticmethod
+    def update_product_with_cache(
+            db: Session,
+            redis_client: Redis,
+            product_id: int,
+            product_in: ProductUpdate
+    ) -> Optional[Product]:
+        """
+        更新商品：先更新数据库，再删除缓存，保证数据一致性
+        :param db: 数据库连接对象
+        :param redis_client: Redis 客户端对象
+        :param product_id: 商品唯一标识
+        :param product_in: 商品入参数据
+        :return: 更新成功返回Product商品对象，失败返回None
+        """
+        # 查询商品是否存在
+        db_product = db.query(Product).filter(Product.id == product_id).first()
+        if not db_product:
+            return None
+
+        # 更新数据库
+        update_data = product_in.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_product, field, value)
+        db.commit()
+        db.refresh(db_product)
+
+        # 删除旧缓存，下次读请求会回写最新数据
+        cache_key = f'{PRODUCT_DETAIL_CACHE_KEY}{product_id}'
+        RedisCacheUtil.delete_cache(redis_client, cache_key)
+        print(f'缓存清理，商品ID={product_id}，旧缓存已删除')
+
+        # 返回更新后的商品对象
+        return db_product
+
+    # 带缓存清理的商品删除
+    @staticmethod
+    def delete_product_with_cache(
+            db: Session,
+            redis_client: Redis,
+            product_id: int
+    ) -> bool:
+        """
+        删除商品：先删除数据库，再删除缓存，保证数据一致性
+        :param db: 数据库连接对象
+        :param redis_client: Redis 客户端对象
+        :param product_id: 删除的商品ID
+        :return: 删除成功返回True，失败返回False
+        """
+        # 查询商品是否存在
+        db_product = db.query(Product).filter(Product.id == product_id).first()
+        if not db_product:
+            return False
+
+        # 删除数据库数据
+        db.delete(db_product)
+        db.commit()
+
+        # 删除缓存
+        cache_key = f'{PRODUCT_DETAIL_CACHE_KEY}{product_id}'
+        RedisCacheUtil.delete_cache(redis_client, cache_key)
+        print(f'缓存清理，商品ID={product_id}，缓存已删除')
+
         return True
