@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package user;
+
+// 用户服务
+service UserService {
+  // 根据ID获取用户
+  rpc GetUserById (GetUserByIdRequest) returns (GetUserByIdResponse);
+  // 根据用户名获取用户
+  rpc GetUserByUsername (GetUserByUsernameRequest) returns (GetUserByUsernameResponse);
+  // 创建用户
+  rpc CreateUser (CreateUserRequest) returns (CreateUserResponse);
+}
+
+// 根据ID获取用户请求
+message GetUserByIdRequest {
+  int32 id = 1;
+}
+
+// 根据ID获取用户响应
+message GetUserByIdResponse {
+  User user = 1;
+}
+
+// 根据用户名获取用户请求
+message GetUserByUsernameRequest {
+  string username = 1;
+}
+
+// 根据用户名获取用户响应
+message GetUserByUsernameResponse {
+  User user = 1;
+}
+
+// 创建用户请求
+message CreateUserRequest {
+  string username = 1;
+  string password = 2;
+  string email = 3;
+}
+
+// 创建用户响应
+message CreateUserResponse {
+  User user = 1;
+}
+
+// 用户消息
+message User {
+  int32 id = 1;
+  string username = 2;
+  string email = 3;
+  string created_time = 4;
+}

@@ -13,7 +13,15 @@ from sqlalchemy.ext.declarative import declarative_base  # ORM模型基类
 from app.core.config import settings  # 导入配置文件（拿数据库地址）
 
 # 创建数据库连接引擎
-engine = create_engine(settings.DATABASE_URL)
+# 优化连接池配置
+engine = create_engine(
+    settings.DATABASE_URL,
+    pool_size=20,          # 连接池大小
+    max_overflow=10,        # 最大溢出连接数
+    pool_pre_ping=True,      # 连接前 ping 检查
+    pool_recycle=3600,       # 连接回收时间（秒）
+    echo=False               # 是否打印 SQL 语句
+)
 
 # 创建数据库会话（操作窗口）
 SessionLocal = sessionmaker(

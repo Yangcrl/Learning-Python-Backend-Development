@@ -97,3 +97,25 @@ def delete_product(
         raise HTTPException(status_code=404, detail="商品不存在")
     return {"message": "商品已删除"}
 
+# # 接口6：获取商品详情（异步版本）
+# @router.get("/async/{product_id}", response_model=ProductResponse, summary="获取商品详情（异步）")
+# async def get_product_async(
+#         product_id: int,
+#         db: Session = Depends(get_db),
+#         redis_client: aioredis.Redis = Depends(get_redis_client_async)
+# ):
+#     """
+#     商品详情接口（异步版本），采用旁路缓存模式
+#     1. 首先通过布隆过滤器判断商品是否存在，防止缓存穿透
+#     2. 第一次请求：缓存未命中，查数据库，回写缓存，返回数据
+#     3. 后续请求：缓存命中，直接返回 Redis 数据，不查数据库
+#     """
+#     # 使用布隆过滤器防止缓存穿透
+#     if not bloom_filter.contains(str(product_id)):
+#         raise HTTPException(status_code=404, detail="商品不存在")
+#     
+#     product = await AsyncProductService.get_product_with_cache(db, redis_client, product_id)
+#     if not product:
+#         raise HTTPException(status_code=404, detail="商品不存在")
+#     return product
+
