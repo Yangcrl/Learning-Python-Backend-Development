@@ -9,6 +9,7 @@ from redis import Redis
 from app.core.database import get_db
 from app.core.redis_client import get_redis_client
 from app.core.redis_lock import RedisLock
+from app.core.rabbitmq import rabbitmq_manager
 from app.models import SeckillActivity
 import time
 import uuid
@@ -76,14 +77,32 @@ def seckill(
         # 生成订单号
         order_id = str(uuid.uuid4())
         
-        # 这里可以添加订单创建逻辑
-        # 例如：创建订单记录到数据库
+        # 构建订单消息
+        order_message = {
+            "order_id": order_id,
+            "activity_id": activity_id,
+            "product_id": activity.product_id,
+            "user_id": 1,  # 这里应该从用户认证中获取
+            "quantity": 1,
+            "amount": activity.seckill_price,
+            "created_at": time.time()
+        }
+        
+        # 发送消息到RabbitMQ队列
+        try:
+            rabbitmq_manager.publish_message(
+                queue_name="seckill_orders",
+                message=order_message
+            )
+            print(f"Order message sent to RabbitMQ: {order_id}")
+        except Exception as e:
+            print(f"Failed to send message to RabbitMQ: {e}")
         
         # 返回订单号和剩余库存
         return {
             "order_id": order_id,
             "remaining_stock": result,
-            "message": "秒杀成功"
+            "message": "秒杀成功，订单正在处理中"
         }
     finally:
         # 释放锁

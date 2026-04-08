@@ -10,6 +10,8 @@ from .user import User
 from .product import Product
 # 从当前目录下的 seckill_activity.py 文件导入 SeckillActivity 类
 from .seckill_activity import SeckillActivity
+# 从当前目录下的 order.py 文件导入 Order 类
+from .order import Order
 
 # 定义公开接口
-__all__ = ['User', 'Product', 'SeckillActivity']
+__all__ = ['User', 'Product', 'SeckillActivity', 'Order']

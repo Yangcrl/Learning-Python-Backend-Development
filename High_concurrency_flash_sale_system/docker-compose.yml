@@ -1,16 +1,24 @@
-# 注释掉所有 Docker 相关内容，我们直接用本地 MySQL
 services:
-  # 这里留空或注释掉，不让 Compose 管理数据库
-  app:
-    build: .
+  rabbitmq:
+    image: rabbitmq:3-management
     ports:
-      - "8000:8000"
-    depends_on:
-      - mysql
+      - "5672:5672"  # AMQP 协议端口
+      - "15672:15672"  # 管理界面端口
     environment:
-      # 关键！改成连接本地 MySQL
-      - DATABASE_URL=mysql+pymysql://root:root123456@localhost:3306/seckill
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
     volumes:
-      - .:/app
+      - rabbitmq_data:/var/lib/rabbitmq
 
-# 如果你的项目不需要 Docker 打包，也可以直接删掉这个文件，只保留 Python 运行环境
+  consul:
+    image: consul:1.15
+    ports:
+      - "8500:8500"  # Consul UI端口
+      - "8600:8600/udp"  # DNS端口
+    volumes:
+      - consul_data:/consul/data
+    command: agent -server -bootstrap-expect=1 -ui -client=0.0.0.0
+
+volumes:
+  rabbitmq_data:
+  consul_data:

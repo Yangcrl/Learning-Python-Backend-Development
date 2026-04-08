@@ -1,0 +1,130 @@
+version: '3.8'
+
+services:
+  # 数据库服务
+  mysql:
+    image: mysql:8.0
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=123456
+      - MYSQL_DATABASE=seckill
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - microservices
+
+  # Redis服务
+  redis:
+    image: redis:6.2
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - microservices
+
+  # RabbitMQ服务
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - microservices
+
+  # Consul服务
+  consul:
+    image: consul:1.15
+    ports:
+      - "8500:8500"
+      - "8600:8600/udp"
+    volumes:
+      - consul_data:/consul/data
+    command: agent -server -bootstrap-expect=1 -ui -client=0.0.0.0
+    networks:
+      - microservices
+
+  # 用户服务
+  user-service:
+    build: ./user-service
+    ports:
+      - "8000:8000"
+      - "50051:50051"
+    depends_on:
+      - mysql
+      - redis
+      - consul
+    environment:
+      - DATABASE_URL=mysql+pymysql://root:123456@mysql:3306/seckill
+      - REDIS_URL=redis://redis:6379/0
+      - CONSUL_HOST=consul
+      - CONSUL_PORT=8500
+    networks:
+      - microservices
+
+  # 商品服务
+  product-service:
+    build: ./product-service
+    ports:
+      - "8001:8001"
+    depends_on:
+      - mysql
+      - redis
+      - consul
+    environment:
+      - DATABASE_URL=mysql+pymysql://root:123456@mysql:3306/seckill
+      - REDIS_URL=redis://redis:6379/0
+      - CONSUL_HOST=consul
+      - CONSUL_PORT=8500
+    networks:
+      - microservices
+
+  # 订单服务
+  order-service:
+    build: ./order-service
+    ports:
+      - "8002:8002"
+    depends_on:
+      - mysql
+      - redis
+      - rabbitmq
+      - consul
+      - user-service
+    environment:
+      - DATABASE_URL=mysql+pymysql://root:123456@mysql:3306/seckill
+      - REDIS_URL=redis://redis:6379/0
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - CONSUL_HOST=consul
+      - CONSUL_PORT=8500
+    networks:
+      - microservices
+
+  # API网关
+  nginx:
+    image: nginx:1.21
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - user-service
+      - product-service
+      - order-service
+    networks:
+      - microservices
+
+networks:
+  microservices:
+    driver: bridge
+
+volumes:
+  mysql_data:
+  redis_data:
+  rabbitmq_data:
+  consul_data:
